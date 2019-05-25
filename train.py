@@ -37,10 +37,15 @@ def train(L_model, M_model, G_model, C_model, criterion, optimizer, schedular, d
 
             running_loss = 0.0
             running_corrects = 0
+            pic_num=0
 
             while True:
                 try:
-                    img, labels = dataset.GetTrainingData()
+                    if phase == 'train':
+                        img, labels = dataset.GetTrainingData()
+                    else:
+                        img, labels = dataset.GetValidationData()
+                    img, labels = img.float().cuda(), labels.float().cuda()
                     optimizer['L'].zero_grad()
                     optimizer['M'].zero_grad()
                     optimizer['G'].zero_grad()
@@ -61,7 +66,7 @@ def train(L_model, M_model, G_model, C_model, criterion, optimizer, schedular, d
                         input_C = torch.cat((input_C, output_M), 1)
                         output = C_model(input_C)
                         _, preds = torch.max(output, 1)
-                        loss = criterion['color'](output, labels)
+                        loss = criterion(output, labels)
                         # backward + optimize only if in training phase
                         if phase == 'train':
                             loss.backward()
@@ -70,18 +75,24 @@ def train(L_model, M_model, G_model, C_model, criterion, optimizer, schedular, d
                             optimizer['G'].step()
                             optimizer['C'].step()
                     # statistics
+                    print('l:',loss.item())*********************
+                    print('i:',img.size(0))
                     running_loss += loss.item() * img.size(0)
-                    running_corrects += torch.sum(preds == labels.data)
+                    running_corrects += torch.sum(preds == labels.data.long())
+                    pic_num += 1
+                    print(pic_num)
                 except FileNotFoundError:
                     break
-
             if phase == 'train':
+                print(running_loss)
+                print(dataset.training_number)
                 epoch_loss = running_loss / dataset.training_number
-                epoch_acc = running_corrects.double() / dataset.training_number
+                epoch_acc = running_corrects / dataset.training_number
             else:
                 epoch_loss = running_loss / dataset.validation_number
-                epoch_acc = running_corrects.double() / dataset.validation_number
+                epoch_acc = running_corrects / dataset.validation_number
             print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+            
             # deep copy the model
             if phase == 'valid' and epoch_acc > best_acc:
                 best_acc = epoch_acc
@@ -90,7 +101,7 @@ def train(L_model, M_model, G_model, C_model, criterion, optimizer, schedular, d
                 best_model_wts['G'] = copy.deepcopy(G_model.state_dict())
                 best_model_wts['C'] = copy.deepcopy(C_model.state_dict())
         end = time.time()
-        print('time:', (end - start)/1000)
+        print('time:', (end - start))
 
     L_model.load_state_dict(best_model_wts['L'])
     M_model.load_state_dict(best_model_wts['M'])
@@ -100,10 +111,16 @@ def train(L_model, M_model, G_model, C_model, criterion, optimizer, schedular, d
     return L_model, M_model, G_model, C_model
 
 if __name__ == '__main__':
+    print('cuda' if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     L_model = LowLevelNetwork()
+    L_model = L_model.to(device)
     M_model = MidLevelNetwork()
+    M_model = M_model.to(device)
     G_model = GlobalNetwork()
+    G_model = G_model.to(device)
     C_model = ColorizationNetwork()
+    C_model = C_model.to(device)
     L_optimizer = optim.SGD(L_model.parameters(), lr=0.001, momentum=0.9)
     M_optimizer = optim.SGD(M_model.parameters(), lr=0.001, momentum=0.9)
     G_optimizer = optim.SGD(G_model.parameters(), lr=0.001, momentum=0.9)

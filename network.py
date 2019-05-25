@@ -133,6 +133,7 @@ class ColorizationNetwork(nn.Module):
             nn.ReLU(),
             nn.Conv2d(32, 2, kernel_size=3, padding=1),
             nn.ReLU(),
+            nn.UpsamplingNearest2d(scale_factor=2),
         )
 
         if init_weights:
