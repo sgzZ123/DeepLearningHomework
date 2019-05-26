@@ -19,10 +19,7 @@ def train(L_model, M_model, G_model, C_model, criterion, optimizer, schedular, d
         start = time.time()
         for phase in ['train', 'valid']:
             if phase == 'train':
-                schedular['L'].step()
-                schedular['M'].step()
-                schedular['G'].step()
-                schedular['C'].step()
+                schedular.step()
                 L_model.train()
                 M_model.train()
                 G_model.train()
@@ -45,11 +42,8 @@ def train(L_model, M_model, G_model, C_model, criterion, optimizer, schedular, d
                         img, labels = dataset.GetTrainingData()
                     else:
                         img, labels = dataset.GetValidationData()
-                    img, labels = img.float().cuda(), labels.float().cuda()
-                    optimizer['L'].zero_grad()
-                    optimizer['M'].zero_grad()
-                    optimizer['G'].zero_grad()
-                    optimizer['C'].zero_grad()
+                    img, labels = img.float(), labels.float()
+                    optimizer.zero_grad()
                     # forward
                     # track history if only in train
                     with torch.set_grad_enabled(phase == 'train'):
@@ -70,15 +64,13 @@ def train(L_model, M_model, G_model, C_model, criterion, optimizer, schedular, d
                         # backward + optimize only if in training phase
                         if phase == 'train':
                             loss.backward()
-                            optimizer['L'].step()
-                            optimizer['M'].step()
-                            optimizer['G'].step()
-                            optimizer['C'].step()
+                            optimizer.step()
                     # statistics
-                    print('l:',loss.item())*********************
-                    print('i:',img.size(0))
+                    print('loss:',loss.item())
+                    print('img.size(0):',img.size(0))
                     running_loss += loss.item() * img.size(0)
                     running_corrects += torch.sum(preds == labels.data.long())
+                    print('running corrects:', running_corrects)
                     pic_num += 1
                     print(pic_num)
                 except FileNotFoundError:
@@ -121,16 +113,10 @@ if __name__ == '__main__':
     G_model = G_model.to(device)
     C_model = ColorizationNetwork()
     C_model = C_model.to(device)
-    L_optimizer = optim.SGD(L_model.parameters(), lr=0.001, momentum=0.9)
-    M_optimizer = optim.SGD(M_model.parameters(), lr=0.001, momentum=0.9)
-    G_optimizer = optim.SGD(G_model.parameters(), lr=0.001, momentum=0.9)
-    C_optimizer = optim.SGD(C_model.parameters(), lr=0.001, momentum=0.9)
-    optimizer = {'L':L_optimizer, 'M':M_optimizer, 'G':G_optimizer, 'C':C_optimizer}
+    model = {'L': L_model, 'M': M_model, 'G': G_model, 'C': C_model}
+    optimizer = optim.SGD([{'params': model[x].parameters()}
+                           for x in ['L', 'M', 'G', 'C']], lr=0.001)
     criterion = nn.MSELoss()
-    exp_lr_scheduler = {'L':lr_scheduler.StepLR(optimizer['L'], step_size=7, gamma=0.1),
-                        'M': lr_scheduler.StepLR(optimizer['M'], step_size=7, gamma=0.1),
-                        'G': lr_scheduler.StepLR(optimizer['G'], step_size=7, gamma=0.1),
-                        'C': lr_scheduler.StepLR(optimizer['C'], step_size=7, gamma=0.1)
-                        }
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
     dataset = Data()
     L_model, M_model, G_model, C_model = train(L_model, M_model, G_model, C_model, criterion,optimizer,exp_lr_scheduler, dataset)

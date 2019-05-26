@@ -11,11 +11,31 @@ class Data:
         self.FileName = FileName
         self.training_set = self.FileName + 'training\\'
         self.validation_set = self.FileName + 'validation\\'
+        self.path = {'train':self.training_set, 'valid':self.validation_set}
         self.data = None
         self.training_number = 0
         self.validation_number = 0
-
-
+        '''
+        self.data_transform = {
+            'train':transforms.Compose([
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406],
+                                     [0.229, 0.224, 0.225])
+            ]),
+            'valid':transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406],
+                                     [0.229, 0.224, 0.225])
+            ]),
+        }
+        self.image_datasets = {x:{y:datasets.ImageFolder(os.path.join(self.path[x], y))
+                                  for y in ['input', 'label']}
+                               for x in ['train', 'valid']}
+        self.dataloader = {x:{y:torch.utils.data.DataLoader(self.image_datasets[x][y], batch_size=1, shuffle=True, num_workers=4)
+                              for y in ['input', 'label']}
+                           for x in ['train', 'valid']}
+        '''
 
     def GetTrainingData(self):
         self.training_number += 1
@@ -23,6 +43,7 @@ class Data:
             im1 = Image.open(self.training_set + 'input\\' + '%d.jpg' % (self.training_number,))
             im2 = Image.open(self.training_set + 'label\\' + '%d.jpg' % (self.training_number,))
         except FileNotFoundError:
+            self.training_number -= 1
             raise FileNotFoundError
         img1 = np.array(im1)
         img1 = torch.from_numpy(img1)
@@ -38,6 +59,7 @@ class Data:
             im1 = Image.open(self.validation_set + 'input\\' + '%d.jpg' % (self.validation_number,))
             im2 = Image.open(self.validation_set + 'label\\' + '%d.jpg' % (self.validation_number,))
         except FileNotFoundError:
+            self.validation_number -= 1
             raise FileNotFoundError
         img1 = np.array(im1)
         img1 = torch.from_numpy(img1)
