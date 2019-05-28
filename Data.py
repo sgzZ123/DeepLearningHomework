@@ -11,7 +11,6 @@ import os
 import copy
 from PIL import Image
 from skimage.color import lab2rgb, rgb2lab, rgb2gray
-import matplotlib.pyplot as plt
 
 
 class GrayscaleImageFolder(datasets.ImageFolder):

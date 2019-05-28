@@ -35,13 +35,15 @@ class Network(nn.Module):
             nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
             nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            nn.ReLU()
+        )
+        self.globallevel1 = nn.Sequential(
+            nn.Linear(512 * 7 * 7, 1024),
             nn.ReLU(),
-            nn.Conv2d(512, 1024, kernel_size=1),
+            nn.Linear(1024, 512),
             nn.ReLU(),
-            nn.Conv2d(1024, 512, kernel_size=1),
-            nn.ReLU(),
-            nn.Conv2d(512, 256, kernel_size=1),
-            nn.ReLU(),
+            nn.Linear(512, 256),
+            nn.ReLU()
         )
         self.color = nn.Sequential(
             nn.Conv2d(512, 256, kernel_size=1),
@@ -68,11 +70,15 @@ class Network(nn.Module):
         x = self.lowlevel(x)
         x1 = self.midlevel(x)
         x2 = self.globallevel(x)
+        x2 = x2.view(x2.size(0), -1)
+        x2 = self.globallevel1(x2)
+        x2 = x2.unsqueeze(2)
+        x2 = x2.unsqueeze(3)
         x = x2
-        for i in range(28 // 7 -1):
+        for i in range(28 // 1 -1):
             x = torch.cat((x, x2), 2)
         x2 = x
-        for i in range(28 // 7 - 1):
+        for i in range(28 // 1 - 1):
             x = torch.cat((x, x2), 3)
         x = torch.cat((x, x1), 1)
         x = self.color(x)
@@ -90,4 +96,11 @@ class Network(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.constant_(m.bias, 0)
+
+
+if __name__ == '__main__':
+    rand_image = torch.randn(1,1,224,224)
+    model = Network()
+    output = model(rand_image)
+    print(output.shape)
 
