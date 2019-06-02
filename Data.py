@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
 import numpy as np
-import torchvision
+import torchvision.models as models
 from torchvision import datasets, models, transforms
 import matplotlib.pyplot as plt
 import time
@@ -44,8 +44,23 @@ def to_rgb(grayscale_input, ab_input,save_path=None,save_name=None):
         plt.imsave(arr=color_image,fname='{}{}'.format(save_path['colorized'],save_name))
 
 
+class Avg(object):
+    def __init__(self):
+        self.val, self.avg, self.sum, self.count = 0, 0, 0, 0
+
+    def reset(self):
+        self.val, self.avg, self.sum, self.count = 0, 0, 0, 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+
+
 
 train_transforms = transforms.Compose([
+    transforms.RandomSizedCrop(224),
     transforms.RandomHorizontalFlip()
 ])
 train_imagefolder = GrayscaleImageFolder('D:\\image\\training',train_transforms)

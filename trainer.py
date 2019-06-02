@@ -27,9 +27,10 @@ def train(model, criterion, optimizer, scheduler, num_epochs=25):
                 input_gray = input_gray.to(device)
                 input_ab = input_ab.to(device)
                 target = target.to(device)
+                print(1)
 
                 # zero the parameter gradients
-                optimizer.zero_grad()
+                #optimizer.zero_grad()
 
                 # forward
                 # track history if only in train
@@ -82,8 +83,8 @@ if __name__ == '__main__':
     model = Network()
     model = model.to(device)
     criterion = nn.MSELoss()
-    optimizer = optim.SGD(model.parameters(),lr=0.001,momentum=0.9)
+    optimizer = optim.Adadelta(model.parameters(),lr=0.01)
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
-    model = train(model,criterion,optimizer,exp_lr_scheduler,num_epochs=100)
+    model = train(model,criterion,optimizer,exp_lr_scheduler,num_epochs=75)
 
 
