@@ -11,13 +11,15 @@ import os
 import copy
 from PIL import Image
 from skimage.color import lab2rgb, rgb2lab, rgb2gray
+from skimage import img_as_float
 
 
 class GrayscaleImageFolder(datasets.ImageFolder):
     def __getitem__(self, item):
         path, target = self.imgs[item]
         img = self.loader(path)
-        if self.transform is not None:
+        #if self.transform is not None:
+        if True:
             img_original = self.transform(img)
             img_original = np.asarray(img_original)
             img_lab = rgb2lab(img_original)
@@ -25,6 +27,7 @@ class GrayscaleImageFolder(datasets.ImageFolder):
             img_ab = img_lab[:,:,1:3]
             img_ab = torch.from_numpy(img_ab.transpose((2,0,1))).float()
             img_original = rgb2gray(img_original)
+            print(img_original)
             img_original = torch.from_numpy(img_original).unsqueeze(0).float()
         if self.target_transform is not None:
             target = self.target_transform(target)
@@ -37,6 +40,7 @@ def to_rgb(grayscale_input, ab_input,save_path=None,save_name=None):
     color_image[:,:,0:1] = color_image[:,:,0:1] * 100
     color_image[:,:,1:3] = color_image[:,:,1:3] *255 -128
     color_image =lab2rgb(color_image.astype(np.float64))
+    print(color_image)
     grayscale_input = grayscale_input.squeeze().numpy()
     if save_path is not None and save_name is not None:
         plt.imsave(arr=grayscale_input,
@@ -60,10 +64,10 @@ class Avg(object):
 
 
 train_transforms = transforms.Compose([
-    transforms.RandomSizedCrop(224),
-    transforms.RandomHorizontalFlip()
+    #transforms.RandomSizedCrop(224)
+    #transforms.RandomHorizontalFlip()
 ])
-train_imagefolder = GrayscaleImageFolder('D:\\image\\training',train_transforms)
+train_imagefolder = GrayscaleImageFolder('D:\\image\\verify',train_transforms)
 train_loader = torch.utils.data.DataLoader(train_imagefolder, batch_size=1,shuffle=True)
 
 val_transforms = transforms.Compose([

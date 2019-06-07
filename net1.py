@@ -10,11 +10,11 @@ class ColorizationNet(nn.Module):
         # Fusion layer to combine midlevel and global features
         self.midlevel_input_size = midlevel_input_size
         self.global_input_size = global_input_size
-        self.fusion = nn.Linear(midlevel_input_size + global_input_size, midlevel_input_size)
-        self.bn1 = nn.BatchNorm1d(midlevel_input_size)
+        #self.fusion = nn.Linear(midlevel_input_size + global_input_size, midlevel_input_size)
+        #self.bn1 = nn.BatchNorm1d(midlevel_input_size)
 
         # Convolutional layers and upsampling
-        self.deconv1_new = nn.ConvTranspose2d(midlevel_input_size, 128, kernel_size=4, stride=2, padding=1)
+        #self.deconv1_new = nn.ConvTranspose2d(midlevel_input_size, 128, kernel_size=4, stride=2, padding=1)
         self.conv1 = nn.Conv2d(midlevel_input_size, 128, kernel_size=3, stride=1, padding=1)
         self.bn2 = nn.BatchNorm2d(128)
         self.conv2 = nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1)
@@ -36,29 +36,22 @@ class ColorizationNet(nn.Module):
         x = F.relu(self.bn3(self.conv2(x)))
         x = F.relu(self.conv3(x))
         x = self.upsample(x)
-        x = F.tanh(self.conv4(x))
+        x = F.sigmoid(self.conv4(x))
         x = self.upsample(self.conv5(x))
         return x
 
 
 class ColorNet(nn.Module):
-    def __init__(self, load=False):
+    def __init__(self):
         super(ColorNet, self).__init__()
 
         # Build ResNet and change first conv layer to accept single-channel input
         resnet_gray_model = models.resnet18(num_classes=365)
         resnet_gray_model.conv1.weight = nn.Parameter(resnet_gray_model.conv1.weight.sum(dim=1).unsqueeze(1).data)
 
-        # Only needed if not resuming from a checkpoint: load pretrained ResNet-gray model
-        if load:  # and only if gpu is available
-            resnet_gray_weights = torch.load(
-                '/input_dir/resnet_gray_weights.pth.tar')  # torch.load('pretrained/resnet_gray.tar')['state_dict']
-            resnet_gray_model.load_state_dict(resnet_gray_weights)
-            # print('Pretrained ResNet-gray weights loaded')
-
         # Extract midlevel and global features from ResNet-gray
         self.midlevel_resnet = nn.Sequential(*list(resnet_gray_model.children())[0:6])
-        self.global_resnet = nn.Sequential(*list(resnet_gray_model.children())[0:9])
+        #self.global_resnet = nn.Sequential(*list(resnet_gray_model.children())[0:9])
         self.fusion_and_colorization_net = ColorizationNet()
 
     def forward(self, input_image):
@@ -70,9 +63,7 @@ class ColorNet(nn.Module):
         output = self.fusion_and_colorization_net(midlevel_output)  # , global_output)
         return output
 
-
-if __name__ == '__main__':
-    model = ColorNet()
-    r = torch.randn(1,1,224,224)
-    o = model(r)
-    print(o.shape)
+    def load_model(self, path):
+        pretrained = torch.load(path,
+                                map_location=lambda storage, loc: storage)
+        self.load_state_dict(pretrained)
