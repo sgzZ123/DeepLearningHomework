@@ -40,7 +40,6 @@ def to_rgb(grayscale_input, ab_input,save_path=None,save_name=None):
     color_image[:,:,0:1] = color_image[:,:,0:1] * 100
     color_image[:,:,1:3] = color_image[:,:,1:3] *255 -128
     color_image =lab2rgb(color_image.astype(np.float64))
-    print(color_image)
     grayscale_input = grayscale_input.squeeze().numpy()
     if save_path is not None and save_name is not None:
         plt.imsave(arr=grayscale_input,
@@ -68,6 +67,7 @@ train_transforms = transforms.Compose([
     #transforms.RandomHorizontalFlip()
 ])
 train_imagefolder = GrayscaleImageFolder('D:\\image\\verify',train_transforms)
+# 加载训练数据
 train_loader = torch.utils.data.DataLoader(train_imagefolder, batch_size=1,shuffle=True)
 
 val_transforms = transforms.Compose([
@@ -75,6 +75,7 @@ val_transforms = transforms.Compose([
     transforms.CenterCrop(224)
 ])
 val_imagefolder = GrayscaleImageFolder('D:\\image\\validation',val_transforms)
+# 加载验证数据
 val_loader = torch.utils.data.DataLoader(val_imagefolder, batch_size=1,shuffle=True)
 
 dataloader = {'train':train_loader, 'valid':val_loader}
